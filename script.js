@@ -11,7 +11,6 @@ let pieces = [];
 function createPuzzle() {
   const size = getPieceSize();
 
-  // Temizle
   container.innerHTML = "";
   pieces = [];
 
@@ -159,17 +158,27 @@ canvas.height = window.innerHeight;
 let particles = [];
 let fireworksActive = false;
 
+const messageBox = document.getElementById("message");
+const closeBtn = document.getElementById("close-message");
+
+closeBtn.addEventListener("click", () => {
+  messageBox.style.display = "none";
+  fireworksActive = false;
+  particles = [];
+});
+
 function launchFireworks() {
   fireworksActive = true;
-  for (let i = 0; i < 80; i++) {
+  // Başlangıçta birkaç parçacık oluştur
+  for (let i = 0; i < 50; i++) {
     particles.push(new Particle());
   }
 }
 
 class Particle {
   constructor() {
-    this.x = canvas.width / 2;
-    this.y = canvas.height / 2;
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
     this.size = Math.random() * 8 + 2;
     this.speedX = Math.random() * 6 - 3;
     this.speedY = Math.random() * 6 - 3;
@@ -181,6 +190,16 @@ class Particle {
     this.x += this.speedX;
     this.y += this.speedY;
     this.life--;
+
+    if (this.life <= 0 || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 8 + 2;
+      this.speedX = Math.random() * 6 - 3;
+      this.speedY = Math.random() * 6 - 3;
+      this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+      this.life = 100;
+    }
   }
 
   draw() {
@@ -197,13 +216,14 @@ function animate() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    particles.forEach((p, i) => {
+    while (particles.length < 80) {
+      particles.push(new Particle());
+    }
+
+    particles.forEach(p => {
       p.update();
       p.draw();
-      if (p.life <= 0) particles.splice(i, 1);
     });
-
-    if (particles.length === 0) fireworksActive = false;
   }
   requestAnimationFrame(animate);
 }

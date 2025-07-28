@@ -48,6 +48,21 @@ h2 {
   z-index: 10;
 }
 
+#message button {
+  margin-top: 15px;
+  padding: 8px 16px;
+  border: none;
+  background-color: #e91e63;
+  color: white;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#message button:hover {
+  background-color: #ad1457;
+}
+
 canvas {
   position: fixed;
   top: 0;
