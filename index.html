@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Romantik Puzzle</title>
+  <title>Eksik Parçaları Tamamla güzelim</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Eksik Parçalarımı Tamamlıyorsun ❤️</h1>
+  <h1 class="title">Eksik Parçaları Tamamla güzelim</h1>
 
-  <div id="puzzle-container"></div>
+  <div id="puzzle"></div>
 
-  <canvas id="fireworks"></canvas>
+  <!-- Şarkı Butonu -->
+  <button id="playButton" class="heart-button">❤️</button>
+  <audio id="bgMusic" src="song.mp3"></audio>
 
-  <div id="message">
-    <p>
-      Askimm, benim puzzle'ı tamamladın, tıpkı benim eksik parçalarımı da tamamladığın gibi. <br />
-      ❤️ 1. Yılımız kutlu olsun. ❤️
-    </p>
-    <button id="close-message">Kapat</button>
+  <!-- Mesaj Kutusu -->
+  <div id="messageBox">
+    <div class="message-content">
+      <p>askiimmm benim puzzle'ı tamamladın, tıpkı benim eksik parçalarımı da tamamladığın gibi. ❤️ 1. Yılımız kutlu olsun. ❤️</p>
+      <button id="closeMessage">Kapat</button>
+    </div>
   </div>
 
-  <button id="music-button" title="Aşkım için müzik çal">
-    ❤️
-  </button>
-  <audio id="bg-music" src="song.mp3" loop></audio>
+  <!-- Fireworks Canvas -->
+  <canvas id="fireworks"></canvas>
 
   <script src="script.js"></script>
 </body>
