@@ -1,101 +1,99 @@
-const container = document.getElementById("puzzle-container");
+const puzzleContainer = document.getElementById("puzzle-container");
 const rows = 6;
 const cols = 6;
-
-function getPieceSize() {
-  return container.clientWidth / cols;
-}
+const imageSrc = "puzzle.jpg";
 
 let pieces = [];
+let draggedPiece = null;
+let puzzleCompleted = false;
+
+function getPieceSize() {
+  return puzzleContainer.clientWidth / cols;
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 function createPuzzle() {
-  const size = getPieceSize();
-
-  container.innerHTML = "";
+  puzzleContainer.innerHTML = "";
   pieces = [];
+  puzzleCompleted = false;
 
+  const size = getPieceSize();
+  puzzleContainer.style.height = puzzleContainer.clientWidth + "px";
+
+  const positions = [];
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      const piece = document.createElement("div");
-      piece.classList.add("piece");
-      piece.style.backgroundPosition = `-${x * size}px -${y * size}px`;
-      piece.dataset.correctX = x;
-      piece.dataset.correctY = y;
-
-      piece.style.left = `${x * size}px`;
-      piece.style.top = `${y * size}px`;
-
-      piece.dataset.x = x;
-      piece.dataset.y = y;
-
-      piece.style.width = size + "px";
-      piece.style.height = size + "px";
-
-      piece.style.backgroundSize = `${container.clientWidth}px ${container.clientHeight}px`;
-
-      piece.setAttribute("draggable", "true");
-
-      piece.addEventListener("dragstart", dragStart);
-      piece.addEventListener("dragover", dragOver);
-      piece.addEventListener("drop", drop);
-      piece.addEventListener("dragend", dragEnd);
-
-      piece.addEventListener("touchstart", touchStart);
-      piece.addEventListener("touchmove", touchMove);
-      piece.addEventListener("touchend", touchEnd);
-
-      container.appendChild(piece);
-      pieces.push(piece);
+      positions.push({ x, y });
     }
   }
 
-  shufflePuzzle(100);
-}
+  const shuffledPositions = shuffle(positions.slice());
 
-function shufflePuzzle(times) {
-  for (let i = 0; i < times; i++) {
-    const idx1 = Math.floor(Math.random() * pieces.length);
-    let idx2 = Math.floor(Math.random() * pieces.length);
-    while (idx2 === idx1) {
-      idx2 = Math.floor(Math.random() * pieces.length);
-    }
-    swapPositions(pieces[idx1], pieces[idx2]);
+  for (let i = 0; i < positions.length; i++) {
+    const correctPos = positions[i];
+    const randomPos = shuffledPositions[i];
+
+    const piece = document.createElement("div");
+    piece.classList.add("piece");
+    piece.style.width = size + "px";
+    piece.style.height = size + "px";
+
+    piece.style.backgroundImage = `url(${imageSrc})`;
+    piece.style.backgroundSize = `${cols * 100}% ${rows * 100}%`;
+    piece.style.backgroundPosition = `${(correctPos.x / (cols - 1)) * 100}% ${(correctPos.y / (rows - 1)) * 100}%`;
+
+    piece.dataset.correctX = correctPos.x;
+    piece.dataset.correctY = correctPos.y;
+
+    piece.style.position = "absolute";
+    piece.style.left = `${randomPos.x * size}px`;
+    piece.style.top = `${randomPos.y * size}px`;
+
+    piece.setAttribute("draggable", !puzzleCompleted);
+
+    piece.addEventListener("dragstart", dragStart);
+    piece.addEventListener("dragover", dragOver);
+    piece.addEventListener("drop", drop);
+    piece.addEventListener("dragend", dragEnd);
+
+    piece.addEventListener("touchstart", touchStart, { passive: false });
+    piece.addEventListener("touchmove", touchMove, { passive: false });
+    piece.addEventListener("touchend", touchEnd);
+
+    puzzleContainer.appendChild(piece);
+    pieces.push(piece);
   }
 }
-
-function swapPositions(p1, p2) {
-  const tempX = p1.dataset.x;
-  const tempY = p1.dataset.y;
-
-  p1.dataset.x = p2.dataset.x;
-  p1.dataset.y = p2.dataset.y;
-  p1.style.left = `${p1.dataset.x * getPieceSize()}px`;
-  p1.style.top = `${p1.dataset.y * getPieceSize()}px`;
-
-  p2.dataset.x = tempX;
-  p2.dataset.y = tempY;
-  p2.style.left = `${p2.dataset.x * getPieceSize()}px`;
-  p2.style.top = `${p2.dataset.y * getPieceSize()}px`;
-}
-
-let draggedPiece = null;
 
 function dragStart(e) {
+  if (puzzleCompleted) {
+    e.preventDefault();
+    return;
+  }
   draggedPiece = e.target;
-  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", "");
 }
 
 function dragOver(e) {
+  if (puzzleCompleted) return;
   e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
 }
 
 function drop(e) {
+  if (puzzleCompleted) return;
   e.preventDefault();
   const target = e.target;
   if (!target.classList.contains("piece") || target === draggedPiece) return;
 
-  swapPositions(draggedPiece, target);
+  swapPieces(draggedPiece, target);
+  draggedPiece = null;
   checkComplete();
 }
 
@@ -103,132 +101,242 @@ function dragEnd(e) {
   draggedPiece = null;
 }
 
-let touchDraggedPiece = null;
+let touchDrag = null;
+let touchOffsetX = 0;
+let touchOffsetY = 0;
 
 function touchStart(e) {
+  if (puzzleCompleted) return;
   e.preventDefault();
-  touchDraggedPiece = e.target;
+  touchDrag = e.target;
+  const touch = e.touches[0];
+  const rect = touchDrag.getBoundingClientRect();
+  touchOffsetX = touch.clientX - rect.left;
+  touchOffsetY = touch.clientY - rect.top;
 }
 
 function touchMove(e) {
+  if (puzzleCompleted) return;
   e.preventDefault();
+  if (!touchDrag) return;
+  const touch = e.touches[0];
+  const left = touch.clientX - touchOffsetX - puzzleContainer.getBoundingClientRect().left;
+  const top = touch.clientY - touchOffsetY - puzzleContainer.getBoundingClientRect().top;
+
+  const size = getPieceSize();
+
+  touchDrag.style.left = `${Math.min(Math.max(left, 0), puzzleContainer.clientWidth - size)}px`;
+  touchDrag.style.top = `${Math.min(Math.max(top, 0), puzzleContainer.clientHeight - size)}px`;
 }
 
 function touchEnd(e) {
+  if (puzzleCompleted) return;
   e.preventDefault();
-  if (!touchDraggedPiece) return;
+  if (!touchDrag) return;
 
   const touch = e.changedTouches[0];
-  const dropX = touch.clientX;
-  const dropY = touch.clientY;
+  const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
 
-  const target = document.elementFromPoint(dropX, dropY);
-  if (target && target.classList.contains("piece") && target !== touchDraggedPiece) {
-    swapPositions(touchDraggedPiece, target);
+  if (dropTarget && dropTarget.classList.contains("piece") && dropTarget !== touchDrag) {
+    swapPieces(touchDrag, dropTarget);
     checkComplete();
   }
 
-  touchDraggedPiece = null;
+  touchDrag = null;
+}
+
+function swapPieces(p1, p2) {
+  const left1 = p1.style.left;
+  const top1 = p1.style.top;
+  const left2 = p2.style.left;
+  const top2 = p2.style.top;
+
+  p1.style.left = left2;
+  p1.style.top = top2;
+  p2.style.left = left1;
+  p2.style.top = top1;
 }
 
 function checkComplete() {
-  let correct = 0;
-  for (const p of pieces) {
+  const size = getPieceSize();
+
+  for (const piece of pieces) {
+    const left = parseFloat(piece.style.left);
+    const top = parseFloat(piece.style.top);
+    const correctX = parseInt(piece.dataset.correctX);
+    const correctY = parseInt(piece.dataset.correctY);
+
     if (
-      parseInt(p.dataset.x) === parseInt(p.dataset.correctX) &&
-      parseInt(p.dataset.y) === parseInt(p.dataset.correctY)
+      Math.abs(left - correctX * size) > 10 ||
+      Math.abs(top - correctY * size) > 10
     ) {
-      correct++;
+      return false;
     }
   }
-  console.log("Doğru parçalar:", correct, "/", pieces.length);
-  if (correct === pieces.length) {
-    document.getElementById("message").style.display = "block";
-    launchFireworks();
-  }
+
+  puzzleCompleted = true;
+  showMessage();
+  launchFireworks();
+  return true;
 }
 
-createPuzzle();
+function showMessage() {
+  const messageBox = document.getElementById("message");
+  messageBox.style.opacity = 0;
+  messageBox.style.display = "block";
+
+  let opacity = 0;
+  function fadeIn() {
+    opacity += 0.05;
+    if (opacity >= 1) {
+      opacity = 1;
+      messageBox.style.opacity = opacity;
+    } else {
+      messageBox.style.opacity = opacity;
+      requestAnimationFrame(fadeIn);
+    }
+  }
+  fadeIn();
+}
+
+document.getElementById("close-message").addEventListener("click", () => {
+  const messageBox = document.getElementById("message");
+  fadeOut(messageBox, () => {
+    messageBox.style.display = "none";
+  });
+  stopFireworks();
+});
+
+function fadeOut(element, callback) {
+  let opacity = 1;
+  function fade() {
+    opacity -= 0.05;
+    if (opacity <= 0) {
+      opacity = 0;
+      element.style.opacity = opacity;
+      if (callback) callback();
+    } else {
+      element.style.opacity = opacity;
+      requestAnimationFrame(fade);
+    }
+  }
+  fade();
+}
+
+// --- Havai Fişek Animasyonu ---
 
 const canvas = document.getElementById("fireworks");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 let particles = [];
 let fireworksActive = false;
 
-const messageBox = document.getElementById("message");
-const closeBtn = document.getElementById("close-message");
-
-closeBtn.addEventListener("click", () => {
-  messageBox.style.display = "none";
-  fireworksActive = false;
-  particles = [];
-});
-
-function launchFireworks() {
-  fireworksActive = true;
-  // Başlangıçta birkaç parçacık oluştur
-  for (let i = 0; i < 50; i++) {
-    particles.push(new Particle());
-  }
-}
-
 class Particle {
-  constructor() {
-    this.x = Math.random() * canvas.width;
-    this.y = Math.random() * canvas.height;
-    this.size = Math.random() * 8 + 2;
-    this.speedX = Math.random() * 6 - 3;
-    this.speedY = Math.random() * 6 - 3;
-    this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
-    this.life = 100;
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.radius = Math.random() * 5 + 3;
+    this.color = color;
+    this.angle = Math.random() * 2 * Math.PI;
+    this.speed = Math.random() * 4 + 2;
+    this.life = 80;
   }
 
   update() {
-    this.x += this.speedX;
-    this.y += this.speedY;
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed;
     this.life--;
-
-    if (this.life <= 0 || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * canvas.height;
-      this.size = Math.random() * 8 + 2;
-      this.speedX = Math.random() * 6 - 3;
-      this.speedY = Math.random() * 6 - 3;
-      this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
-      this.life = 100;
-    }
   }
 
   draw() {
-    ctx.beginPath();
     ctx.fillStyle = this.color;
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.beginPath();
+    const x = this.x;
+    const y = this.y;
+    const size = this.radius;
+    ctx.moveTo(x, y + size / 4);
+    ctx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + size / 4);
+    ctx.bezierCurveTo(x - size / 2, y + size / 2, x, y + size * 0.75, x, y + size);
+    ctx.bezierCurveTo(x, y + size * 0.75, x + size / 2, y + size / 2, x + size / 2, y + size / 4);
+    ctx.bezierCurveTo(x + size / 2, y, x, y, x, y + size / 4);
+    ctx.closePath();
     ctx.fill();
   }
 }
 
+function launchFireworks() {
+  fireworksActive = true;
+  particles = [];
+  for (let i = 0; i < 80; i++) {
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height / 2;
+    const hue = 330;
+    const color = `hsl(${hue + Math.random() * 30}, 100%, 70%)`;
+    particles.push(new Particle(x, y, color));
+  }
+}
+
+function stopFireworks() {
+  fireworksActive = false;
+  particles = [];
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   if (fireworksActive) {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    while (particles.length < 80) {
-      particles.push(new Particle());
-    }
-
-    particles.forEach(p => {
+    particles.forEach((p, i) => {
       p.update();
       p.draw();
+
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height / 2;
+        const hue = 330;
+        const color = `hsl(${hue + Math.random() * 30}, 100%, 70%)`;
+        particles.push(new Particle(x, y, color));
+      }
     });
   }
   requestAnimationFrame(animate);
 }
 animate();
 
+// Müzik butonu
+
+const musicBtn = document.getElementById("music-button");
+const bgMusic = document.getElementById("bg-music");
+let musicPlaying = false;
+
+musicBtn.addEventListener("click", () => {
+  if (!musicPlaying) {
+    bgMusic.play();
+    musicPlaying = true;
+    musicBtn.style.transform = "scale(1.2)";
+    setTimeout(() => (musicBtn.style.transform = "scale(1)"), 300);
+  } else {
+    bgMusic.pause();
+    musicPlaying = false;
+    musicBtn.style.transform = "scale(0.9)";
+    setTimeout(() => (musicBtn.style.transform = "scale(1)"), 300);
+  }
+});
+
 window.addEventListener("resize", () => {
   createPuzzle();
 });
+
+// Sayfa açıldığında puzzle oluştur
+window.onload = createPuzzle;

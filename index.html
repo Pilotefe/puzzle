@@ -3,20 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Eksik Parçalarım</title>
+  <title>Romantik Puzzle</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h2>🧩 Eksik Parçalarım</h2>
+  <h1>Eksik Parçalarımı Tamamlıyorsun ❤️</h1>
+
   <div id="puzzle-container"></div>
 
-  <div id="message" style="display:none;">
-    Tebrikler! Puzzle’ı tamamladın.<br />
-    <strong>Tıpkı benim eksik parçalarımı da senin tamamladığın gibi... ❤️</strong><br />
+  <canvas id="fireworks"></canvas>
+
+  <div id="message">
+    <p>
+      Askimm, benim puzzle'ı tamamladın, tıpkı benim eksik parçalarımı da tamamladığın gibi. <br />
+      ❤️ 1. Yılımız kutlu olsun. ❤️
+    </p>
     <button id="close-message">Kapat</button>
   </div>
 
-  <canvas id="fireworks"></canvas>
+  <button id="music-button" title="Aşkım için müzik çal">
+    ❤️
+  </button>
+  <audio id="bg-music" src="song.mp3" loop></audio>
 
   <script src="script.js"></script>
 </body>
